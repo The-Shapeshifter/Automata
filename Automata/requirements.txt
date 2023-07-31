@@ -1,0 +1,4 @@
+paho-mqtt==1.6.1
+pip==23.1.2
+setuptools==68.0.0
+wheel==0.40.0
