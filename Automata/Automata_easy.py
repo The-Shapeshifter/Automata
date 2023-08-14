@@ -1,11 +1,19 @@
+import json
 import signal
+import time
+
 from paho.mqtt.client import Client
 
-_status = [[], []]
+_status = [[1], [0]]
+_time = time.time()
+_light = False
+_G_index = 0
 
 
 def on_message(client, userdata, msg):
-    print(f"{user} --> {msg.payload.decode()}")
+    rcv = json.loads(msg.payload)
+    print(f"{user} <-- {rcv}")
+
 
 
 def on_connect(client, userdata, flags, rc):
@@ -24,7 +32,7 @@ if __name__ == '__main__':
     # Let's start with a clean screen!
     print("\033c")
 
-    user = input("Input username: ")
+    user = "Automata"
 
     subscriber = Client(user, clean_session=False)
     subscriber.on_message = on_message
@@ -32,7 +40,7 @@ if __name__ == '__main__':
 
     try:
         subscriber.connect("localhost")
-        subscriber.subscribe("temp")
+        subscriber.subscribe("plant")
         subscriber.loop_forever(retry_first_connection=True)
     except ConnectionError as e:
         print(f"Network error:\n\t {e}")
