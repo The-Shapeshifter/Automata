@@ -1,42 +1,54 @@
 import json
+import logging
 import ssl
+from datetime import datetime, timedelta
 from time import ctime
 
 import ntplib
 from paho import mqtt
-from States import States
 from paho.mqtt.client import Client
-from datetime import datetime, timedelta
 
+from States import States
 
 _Current_state = States.NIGHTTIME
 _G_index = 0
 _Rcv_time = timedelta()
-_Time_elapsed = timedelta(hours=0, minutes=0)
+_Time_elapsed = timedelta()
 
 
-def set_current_time():
+def set_current_time(init=False) -> datetime:
     global _Rcv_time
-    server = "it.pool.ntp.org"
     try:
         client = ntplib.NTPClient()
-        response = client.request(server, version=3)
-        _Rcv_time = datetime.strptime(ctime(response.tx_time), "%a %b %d %H:%M:%S %Y")
-    except Exception as e:
-        print(f"Error while retrieving time from \"{server}\":")
-        print(f"\t{e}")
-        print("Defaulting to machine time\n")
-        _Rcv_time = datetime.utcnow()
+        response = client.request("it.pool.ntp.org", version=3)
+        time = datetime.strptime(ctime(response.tx_time), "%a %b %d %H:%M:%S %Y")
+    except Exception as ex:
+        print(f"Error while retrieving NTP time: {ex}\n"
+              f"defaulting to local date\n")
+        logging.error(f"Error while retrieving NTP time: {ex}\n"
+                      f"defaulting to local date\n")
+        time = datetime.utcnow()
 
-    print(f"Server started, Local time: {_Rcv_time}\n"
-          f"Connecting to broker...\n")
+    if init:
+        _Rcv_time = time
+        print(f"Server started, Local time: {_Rcv_time}\n"
+              f"Connecting to broker...\n")
+        logging.info(f"Server started")
+    return time
+
+
+def time_calculation(msg_time: str) -> None:
+    global _Rcv_time, _Time_elapsed
+    msg_time = datetime.strptime(msg_time, '%d/%m/%Y %H:%M')
+    _Time_elapsed = msg_time - _Rcv_time
+    _Rcv_time = msg_time
 
 
 def on_message(client, userdata, msg) -> None:
     global _Current_state, _Time_elapsed, _G_index, _Rcv_time
 
     message = json.loads(msg.payload.decode("utf-8"))
-    print(f"\t{message}")
+    # print(f"\t{json.dumps(message)}")
 
     subscriber.publish(
         topic=params.get("send-topic"),
@@ -44,35 +56,24 @@ def on_message(client, userdata, msg) -> None:
         # retain=True
     )
 
-    msg_time = datetime.strptime(message.get("Date_Time"), '%d/%m/%Y %H:%M')
-    _Time_elapsed += msg_time - _Rcv_time
-    _Rcv_time = msg_time
-    print(f"\tTime Elapsed: {_Time_elapsed}")
-    # rcv = json.loads(msg.payload)
-    # print(f"Message received from {rcv[3]}: {rcv}")
+    time_calculation(message.get("Date_Time"))
+    current_time = set_current_time()
 
-    # match rcv[0]:
-    #    case True:
-    #        _Current_state = States.DAYTIME
-    #        _G_index += rcv[1]
-    #    case False:
-    #        _Current_state = States.NIGHTTIME
-    #    case default:
-    #        print("Error: no case match found")
+    print(f"Message received on {current_time.date()} at {current_time.hour}:{current_time.minute}:")
+    print(f"\tTime Elapsed since last message: {_Time_elapsed}")
 
-    # _Rcv_time += datetime.timedelta(minutes=rcv[2])
-
-    # print(f"status= {_Current_state.name}, G= {_G_index}, T= {_Rcv_time}\n")
+    # Funzione per i passaggi di stato nell'automa
+    state_transition(message)
+    print(f"\tCurrent state: {_Current_state}\n")
 
 
 def on_connect(client, userdata, flags, rc) -> None:
     print("Connected!\n"
-          "---------------------------------------------------\n"
-          "log started:\n")
+          "---------------------------------------------------\n")
 
 
 def on_log(client, userdata, level, buf):
-    print("\tdev log: ", buf)
+    logging.debug(buf)
 
 
 def halt() -> None:
@@ -112,11 +113,26 @@ def ext_login_tls_config():
     return par, sub
 
 
+def state_transition(message: dict) -> None:
+    global _Current_state
+    is_day_time = int(message.get('SolarRad_W_m_2')) > 0
+
+    match is_day_time:
+        case True:
+            _Current_state = States.DAYTIME
+        case False:
+            _Current_state = States.NIGHTTIME
+
+
 if __name__ == '__main__':
     # Let's start with a clean screen!
     print("\033c")
 
-    set_current_time()
+    logging.basicConfig(format='Date-Time : %(asctime)s - %(message)s',
+                        level=logging.DEBUG,
+                        filename='Automata.log', filemode='w')
+
+    set_current_time(init=True)
 
     user = "Automata"
 
@@ -124,7 +140,7 @@ if __name__ == '__main__':
 
     subscriber.on_message = on_message
     subscriber.on_connect = on_connect
-    # subscriber.on_log = on_log
+    subscriber.on_log = on_log
 
     try:
         subscriber.username_pw_set(params.get("username"), params.get("password"))
