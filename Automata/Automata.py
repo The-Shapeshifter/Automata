@@ -64,7 +64,7 @@ def on_message(client, userdata, msg) -> None:
 
     # Funzione per i passaggi di stato nell'automa
     state_transition(message)
-    print(f"\tCurrent state: {_Current_state}\n")
+    print(f"\tCurrent state: {_Current_state.name.lower()}\n")
 
 
 def on_connect(client, userdata, flags, rc) -> None:
@@ -128,9 +128,9 @@ if __name__ == '__main__':
     # Let's start with a clean screen!
     print("\033c")
 
-    logging.basicConfig(format='Date-Time : %(asctime)s - %(message)s',
+    logging.basicConfig(format='Date-Time : %(asctime)s %(levelname)s - %(message)s',
                         level=logging.DEBUG,
-                        filename='Automata.log', filemode='w')
+                        filename='logs/Automata.log', filemode='w')
 
     set_current_time(init=True)
 
