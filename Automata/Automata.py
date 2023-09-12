@@ -83,11 +83,25 @@ def halt() -> None:
 
 
 def hoss_autoconfig():
-    payload = {"device": "Plant",
-               "name": "Simple plant",
-               "manufacturer": "Max's industries"
+    payload = {"name": "Photoperiod Sensor",
+               "state_topic": "plant/light01",
+               "unique_id": "LightSens01",
+               "availability_topic": "plant/light01/status",
+               "payload_available": "online",
+               "payload_not_available": "offline",
+               "payload_on": "on",
+               "payload_off": "off",
+               "device_class": "light",
+               "dev": {
+                   "identifiers": "Automata",
+                   "manufacturer": "Optox dev",
+                   "model": "null",
+                   "name": "Automata MQTT",
+                   "sw_version": "1.0"
+                    }
                }
-    subscriber.publish(topic="homeassistant/sensor/temperature/config", payload=json.dumps(payload))
+    subscriber.publish(topic="homeassistant/binary_sensor/light/config", payload=json.dumps(payload))
+    subscriber.publish(topic="plant/light01/status", payload='online')
 
 
 def ext_login_tls_config():
@@ -120,8 +134,10 @@ def state_transition(message: dict) -> None:
     match is_day_time:
         case True:
             _Current_state = States.DAYTIME
+            subscriber.publish(topic='plant/light01', payload='on')
         case False:
             _Current_state = States.NIGHTTIME
+            subscriber.publish(topic='plant/light01', payload='off')
 
 
 if __name__ == '__main__':
@@ -151,10 +167,10 @@ if __name__ == '__main__':
             keepalive=60
         )
         subscriber.subscribe(topic=params.get("rcv-topic"))
+        hoss_autoconfig()
         subscriber.loop_forever(retry_first_connection=True)
-        # hoss_autoconfig()
-    except ConnectionError as e:
-        print(f"Network error:\n\t {e}")
+    except Exception as e:
+        print(f"Network error:\t {e}")
         exit(1)
     except KeyboardInterrupt:
         print("---------------------------------------------------\n"
