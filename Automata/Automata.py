@@ -59,7 +59,7 @@ def on_message(client, userdata, msg) -> None:
     time_calculation(message.get("Date_Time"))
     current_time = set_current_time()
 
-    print(f"Message received on {current_time.date()} at {current_time.hour}:{current_time.minute}:")
+    print(f"Message received on {current_time}:")
     print(f"\tTime Elapsed since last message: {_Time_elapsed}")
 
     # Funzione per i passaggi di stato nell'automa
@@ -103,6 +103,40 @@ def hoss_autoconfig():
     subscriber.publish(topic="homeassistant/binary_sensor/light/config", payload=json.dumps(payload))
     subscriber.publish(topic="plant/light01/status", payload='online')
 
+    payload = {"unique_id": "Temperature sensor",
+               "name": "TempSens01",
+               "state_topic": "plant/temp",
+               "availability_topic": "plant/temp/status",
+               "availability_mode": "latest",
+               "unit_of_measurement": "°C",
+               "payload_available": "online",
+               "payload_not_available": "offline",
+               "qos": 0,
+               "retain": True,
+               "dev": {
+                   "identifiers": "Automata"
+                    }
+               }
+    subscriber.publish(topic="homeassistant/sensor/temperature/config", payload=json.dumps(payload))
+    subscriber.publish(topic="plant/temp/status", payload='online')
+
+    payload = {"unique_id": "Humidity sensor",
+               "name": "HumSens01",
+               "state_topic": "plant/humidity",
+               "availability_topic": "plant/humidity/status",
+               "availability_mode": "latest",
+               "unit_of_measurement": "%",
+               "payload_available": "online",
+               "payload_not_available": "offline",
+               "qos": 0,
+               "retain": True,
+               "dev": {
+                   "identifiers": "Automata"
+                    }
+               }
+    subscriber.publish(topic="homeassistant/sensor/humidity/config", payload=json.dumps(payload))
+    subscriber.publish(topic="plant/humidity/status", payload='online')
+
 
 def ext_login_tls_config():
     par = {
@@ -129,6 +163,7 @@ def ext_login_tls_config():
 
 def state_transition(message: dict) -> None:
     global _Current_state
+    print(f"\tLight value: {int(message.get('SolarRad_W_m_2'))}")
     is_day_time = int(message.get('SolarRad_W_m_2')) > 0
 
     match is_day_time:
@@ -138,6 +173,8 @@ def state_transition(message: dict) -> None:
         case False:
             _Current_state = States.NIGHTTIME
             subscriber.publish(topic='plant/light01', payload='off')
+
+    subscriber.publish(topic="plant/temp", payload=message.get("Temp__C"))
 
 
 if __name__ == '__main__':
