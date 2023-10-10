@@ -2,5 +2,6 @@ from enum import Enum
 
 
 class States(Enum):
-    NIGHTTIME = 0
-    DAYTIME = 1
+    S0 = 0
+    S1 = 1
+    S2 = 2
