@@ -1,6 +1,8 @@
 import json
+import ssl
 import time
 
+from paho import mqtt
 from paho.mqtt.client import Client
 
 
@@ -8,43 +10,73 @@ def on_publish(client, userdata, mid):
     print(f"Message published")
 
 
+def ext_login_tls_config():
+    par = {
+        "host": "90.147.167.187",
+        "port": 8883,
+        "login": True,
+        "username": "homeassistant",
+        "password": "univr_agri01",
+        "rcv-topic": "sensori",
+        "send-topic": "prova2",
+        "cert_tls": "ca-root-cert.crt"
+    }
+
+    sub = Client(
+        client_id=user,
+        clean_session=True,
+        userdata=None,
+        protocol=mqtt.client.MQTTv311,
+        transport='tcp'
+    )
+
+    return par, sub
+
+
 if __name__ == "__main__":
-    username = "Publisher_test"
-    _time = time.time()
-    client = Client(username)
-    client.on_publish = on_publish
+    user = "Automata"
+    params, subscriber = ext_login_tls_config()
+    subscriber.username_pw_set(params.get("username"), params.get("password"))
+    subscriber.tls_set(ca_certs=params.get("cert_tls"), tls_version=2, cert_reqs=ssl.CERT_NONE)
+    subscriber.connect(
+        host=params.get("host"),
+        port=params.get("port"),  # default 1883, per tls/ssl 8883
+        keepalive=60
+    )
+    subscriber.subscribe(topic=params.get("rcv-topic"))
 
-    client.connect("localhost")
-    client.loop_start()
+    subscriber.loop_start()
     # light, temp, mins
-    client.publish(topic="plant", payload=json.dumps([True, 25, 15, username]))
+    payload = {
+        "Date_Time": "18/11/2021 18:00",
+        "Barometer_HPa": "1025.4",
+        "Temp__C": "11.2",
+        "HighTemp__C": "11.4",
+        "LowTemp__C": "11.2",
+        "Hum__": "93",
+        "DewPoint__C": "10.1",
+        "WetBulb__C": "10.5",
+        "WindSpeed_Km_h": "3.2",
+        "WindDirection": "WNW",
+        "WindRun_Km": "0.8",
+        "HighWindSpeed_Km_h": "6.4",
+        "HighWindDirection": "WNW",
+        "WindChill__C": "11.2",
+        "HeatIndex__C": "11.3",
+        "THWIndex__C": "11.3",
+        "THSWIndex__C": "9.9",
+        "Rain_Mm": "0",
+        "RainRate_Mm_h": "0",
+        "SolarRad_W_m_2": "0",
+        "SolarEnergy_Ly": "0",
+        "HighSolarRad_W_m_2": "0",
+        "ET_Mm": "0",
+        "UVIndex": "--",
+        "UVDose_MEDs": "--",
+        "HighUVIndex": "--",
+        "HeatingDegreeDays": "0.075",
+        "CoolingDegreeDays": "0"
+    }
 
-    # payload = {"unique_id": "plant_sensor_TEST",
-    #            "name": "Plant sensor TEST",
-    #            "state_topic": "plant/TestSensor",
-    #            "availability_topic": "plant/TestSensor/status",
-    #            "availability_mode": "any",
-    #            "unit_of_measurement": "°C",
-    #            "payload_available": "online",
-    #            "suggested_display_precision": 1,
-    #            "payload_not_available": "offline",
-    #            "qos": 0,
-    #            "retain": True
-    #            }
-    # client.publish(topic="homeassistant/sensor/temperature/config", payload=json.dumps(payload))
-    # payload = {"name": "Automata",
-    #            "state_topic": "automata",
-    #            "unique_id": "Automata 2",
-    #            "availability_topic": "plant/automata/status",
-    #            "payload_available": "online",
-    #            "payload_not_available": "offline",
-    #            "dev": {
-    #                "identifiers": "Automata 2 test",
-    #                "manufacturer": "Optox dev",
-    #                "model": "model",
-    #                "name": "Automata MQTT",
-    #                "sw_version": "1.0"
-    #                 }
-    #            }
-    # client.publish(topic="homeassistant/event/automata/config", payload=json.dumps(payload))
-    client.loop_stop()
+    subscriber.publish(topic=params.get("rcv-topic"), payload=json.dumps(payload))
+    subscriber.loop_stop()

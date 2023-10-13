@@ -1,19 +1,26 @@
 import json
 import logging
 import ssl
+import traceback
 from datetime import datetime, timedelta
-from time import ctime, sleep
+from time import ctime
 
 import ntplib
+import Transitions
 from paho import mqtt
 from paho.mqtt.client import Client
 
 from States import States
 
-_Current_state = States.NIGHTTIME
-_G_index = 0
+_Current_state = States.S0
 _Prev_rcv_time = timedelta()
 _Time_elapsed = timedelta()
+_Is_hour_passed = 0
+_Msg_counter = 0
+_Rad_sum = 0.0
+_Temp_sum = 0.0
+_Init = True
+_MAX_WAIT_TIME = 60
 
 
 def set_current_time(init=False) -> datetime:
@@ -38,14 +45,20 @@ def set_current_time(init=False) -> datetime:
 
 
 def time_calculation(msg_time: str) -> None:
-    global _Prev_rcv_time, _Time_elapsed
+    global _Prev_rcv_time, _Time_elapsed, _Is_hour_passed, _Init
     msg_time = datetime.strptime(msg_time, '%d/%m/%Y %H:%M')
     _Time_elapsed = msg_time - _Prev_rcv_time
     _Prev_rcv_time = msg_time
 
+    if _Init:
+        _Is_hour_passed = 0
+        _Init = False
+    else:
+        _Is_hour_passed += divmod(_Time_elapsed.seconds, 60)[0]
+
 
 def on_message(client, userdata, msg) -> None:
-    global _Current_state, _Time_elapsed, _G_index, _Prev_rcv_time
+    global _Current_state, _Time_elapsed, _Prev_rcv_time, _Is_hour_passed
 
     message = json.loads(msg.payload.decode("utf-8"))
     # print(f"\t{json.dumps(message)}")
@@ -55,10 +68,11 @@ def on_message(client, userdata, msg) -> None:
 
     print(f"Message received on {current_time}:")
     print(f"\tTime Elapsed since last message: {_Time_elapsed}")
+    print(f"\tHour counter: {_Is_hour_passed}")
 
     # Funzione per i passaggi di stato nell'automa
     state_transition(message)
-    print(f"\tCurrent state: {_Current_state.name.lower()}\n")
+    print(f"\tCurrent state: {_Current_state.name}\n")
 
 
 def on_connect(client, userdata, flags, rc) -> None:
@@ -153,7 +167,7 @@ def hoss_autoconfig():
                "payload_available": "online",
                "payload_not_available": "offline",
                "device_class": "enum",
-               "options": [v.name.lower() for v in States],
+               "options": [v.name for v in States],
                "native_value": "string",
                "qos": 0,
                "retain": True,
@@ -175,7 +189,7 @@ def ext_login_tls_config():
         "password": "univr_agri01",
         "rcv-topic": "sensori",
         "send-topic": "prova2",
-        "cert_tls": "ca-root-cert.crt",
+        "cert_tls": "ca-root-cert.crt"
     }
 
     sub = Client(
@@ -190,20 +204,35 @@ def ext_login_tls_config():
 
 
 def state_transition(message: dict) -> None:
-    global _Current_state
-    is_day_time = int(message.get('SolarRad_W_m_2')) > 0
+    global _Current_state, _Msg_counter, _Rad_sum, _Temp_sum, _Is_hour_passed
 
-    match is_day_time:
-        case True:
-            _Current_state = States.DAYTIME
-            subscriber.publish(topic='plant/light', payload='on')
-            subscriber.publish(topic='plant/state', payload=_Current_state.name.lower())
-        case False:
-            _Current_state = States.NIGHTTIME
-            subscriber.publish(topic='plant/light', payload='off')
-
+    rad = float(message.get('SolarRad_W_m_2'))
+    _Rad_sum += rad
+    temp = float(message.get("Temp__C"))
+    _Temp_sum += temp
     subscriber.publish(topic="plant/temp", payload=message.get("Temp__C"))
     subscriber.publish(topic="plant/humidity", payload=message.get("Hum__"))
+    _Msg_counter += 1
+
+    if _Is_hour_passed >= _MAX_WAIT_TIME:
+        _Current_state = Transitions.states_transition(
+                         _Current_state,
+                         _Temp_sum / _Msg_counter,
+                         _Rad_sum / _Msg_counter)
+        _Is_hour_passed = 0
+        _Temp_sum = 0
+        _Rad_sum = 0
+        _Msg_counter = 0
+        print(f"\tCalling state transition function...")
+        logging.info("Calling state transition function...")
+
+    subscriber.publish(topic='plant/state', payload=_Current_state.name)
+
+    match rad > 0:
+        case True:
+            subscriber.publish(topic='plant/light', payload='on')
+        case False:
+            subscriber.publish(topic='plant/light', payload='off')
 
 
 if __name__ == '__main__':
@@ -214,7 +243,7 @@ if __name__ == '__main__':
                         level=logging.DEBUG,
                         filename='logs/Automata.log', filemode='w')
 
-    set_current_time(init=True)
+    set_current_time(init=_Init)
 
     user = "Automata"
 
