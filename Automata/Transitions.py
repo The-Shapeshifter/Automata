@@ -149,7 +149,7 @@ def states_transition(state, temp, rad) -> States:
 
         case States.S1:
             if h <= 23:
-                N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM),
+                N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM)
                 Pg = Pg + min(min_pg(temp), max_pg(temp)) * ((v2 / v7) * log(top(temp, rad) / bottom(temp, rad)) * v17 * v18 / 24)
                 Rm = Rm + pow(Q10, (0.1 * temp - 2)) * cfm / 24
                 Tm = Tm * (h - 1) / h + temp / h
@@ -159,8 +159,8 @@ def states_transition(state, temp, rad) -> States:
                 counter = counter + 1
                 return state
             if h >= 23 and N < CfxNFF + KF:
-                N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM),
-                counter = counter + 1,
+                N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM)
+                counter = counter + 1
                 Bio = Bio + grnet(temp, rad) - (
                         Cfp * (N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM) - Nd) *
                         min(1.0, max(0.0, lai(temp) - LAIMAX)))
