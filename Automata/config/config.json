@@ -1,0 +1,83 @@
+{
+    "sensors": [
+        {
+            "name": "Photoperiod Sensor",
+           "unique_id": "LightSens",
+           "state_topic": "plant/light",
+           "availability_topic": "plant/light/status",
+           "availability_mode": "latest",
+           "payload_available": "online",
+           "payload_not_available": "offline",
+           "enabled_by_default": true,
+           "payload_on": "on",
+           "payload_off": "off",
+           "device_class": "light",
+           "retain": true,
+           "autoconf_topic": "homeassistant/binary_sensor/light/config",
+           "dev": {
+               "identifiers": "Automata",
+               "manufacturer": "Optox dev",
+               "model": "Model 1",
+               "name": "Automata MQTT",
+               "sw_version": "1.0"
+           }
+        },
+        {
+                "unique_id": "Temperature sensor",
+               "name": "TempSens",
+               "state_topic": "plant/temp",
+               "availability_topic": "plant/temp/status",
+               "availability_mode": "latest",
+               "enabled_by_default": true,
+               "unit_of_measurement": "\u00b0C",
+               "payload_available": "online",
+               "payload_not_available": "offline",
+               "qos": 0,
+               "retain": true,
+                "autoconf_topic": "homeassistant/sensor/temperature/config",
+               "dev": {
+                   "identifiers": "Automata",
+                   "name": "Automata MQTT"
+               }
+               },
+        {
+                "unique_id": "Humidity sensor",
+               "name": "HumSens",
+               "state_topic": "plant/humidity",
+               "availability_topic": "plant/humidity/status",
+               "availability_mode": "latest",
+               "enabled_by_default": true,
+               "unit_of_measurement": "%",
+               "payload_available": "online",
+               "payload_not_available": "offline",
+               "device_class": "humidity",
+               "qos": 0,
+               "retain": true,
+                "autoconf_topic": "homeassistant/sensor/humidity/config",
+               "dev": {
+                   "identifiers": "Automata",
+                   "name": "Automata MQTT"
+               }
+               },
+        {
+            "unique_id": "Current state",
+               "name": "AutomataStat",
+               "state_topic": "plant/state",
+               "availability_topic": "plant/state/status",
+               "availability_mode": "latest",
+               "enabled_by_default": true,
+               "payload_available": "online",
+               "payload_not_available": "offline",
+               "device_class": "enum",
+               "options": [],
+               "native_value": "string",
+               "qos": 0,
+               "retain": true,
+                "autoconf_topic": "homeassistant/sensor/text/config",
+               "dev": {
+                   "identifiers": "Automata",
+                   "name": "Automata MQTT"
+               }
+        }
+    ]
+}

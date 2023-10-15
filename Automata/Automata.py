@@ -1,15 +1,16 @@
 import json
 import logging
+import os
+import shutil
 import ssl
-import traceback
 from datetime import datetime, timedelta
 from time import ctime
 
 import ntplib
-import Transitions
 from paho import mqtt
 from paho.mqtt.client import Client
 
+import Transitions
 from States import States
 
 _Current_state = States.S0
@@ -57,127 +58,17 @@ def time_calculation(msg_time: str) -> None:
         _Is_hour_passed += divmod(_Time_elapsed.seconds, 60)[0]
 
 
-def on_message(client, userdata, msg) -> None:
-    global _Current_state, _Time_elapsed, _Prev_rcv_time, _Is_hour_passed
-
-    message = json.loads(msg.payload.decode("utf-8"))
-    # print(f"\t{json.dumps(message)}")
-
-    time_calculation(message.get("Date_Time"))
-    current_time = set_current_time()
-
-    print(f"Message received on {current_time}:")
-    print(f"\tTime Elapsed since last message: {_Time_elapsed}")
-    print(f"\tHour counter: {_Is_hour_passed}")
-
-    # Funzione per i passaggi di stato nell'automa
-    state_transition(message)
-    print(f"\tCurrent state: {_Current_state.name}\n")
-
-
-def on_connect(client, userdata, flags, rc) -> None:
-    print("Connected!\n"
-          "---------------------------------------------------\n")
-
-
-def on_log(client, userdata, level, buf):
-    logging.debug(buf)
-
-
-def halt() -> None:
-    print("Deactivating all sensor on HA...")
-    subscriber.publish(topic="plant/temp/status", payload='offline')
-    subscriber.publish(topic="plant/light/status", payload='offline')
-    subscriber.publish(topic="plant/humidity/status", payload='offline')
-    subscriber.publish(topic="plant/state/status", payload='offline')
-    subscriber.loop_stop()
-    print("Done\nExiting...\n")
-    exit(0)
-
-
 def hoss_autoconfig():
-    payload = {"name": "Photoperiod Sensor",
-               "unique_id": "LightSens",
-               "state_topic": "plant/light",
-               "availability_topic": "plant/light/status",
-               "availability_mode": "latest",
-               "payload_available": "online",
-               "payload_not_available": "offline",
-               "enabled_by_default": True,
-               "payload_on": "on",
-               "payload_off": "off",
-               "device_class": "light",
-               "retain": True,
-               "dev": {
-                   "identifiers": "Automata",
-                   "manufacturer": "Optox dev",
-                   "model": "Model 1",
-                   "name": "Automata MQTT",
-                   "sw_version": "1.0"
-               }
-               }
-    subscriber.publish(topic="homeassistant/binary_sensor/light/config", payload=json.dumps(payload))
-    subscriber.publish(topic="plant/light/status", payload='online')
-
-    payload = {"unique_id": "Temperature sensor",
-               "name": "TempSens",
-               "state_topic": "plant/temp",
-               "availability_topic": "plant/temp/status",
-               "availability_mode": "latest",
-               "enabled_by_default": True,
-               "unit_of_measurement": "°C",
-               "payload_available": "online",
-               "payload_not_available": "offline",
-               "qos": 0,
-               "retain": True,
-               "dev": {
-                   "identifiers": "Automata",
-                   "name": "Automata MQTT"
-               }
-               }
-    subscriber.publish(topic="homeassistant/sensor/temperature/config", payload=json.dumps(payload))
-    subscriber.publish(topic="plant/temp/status", payload='online')
-
-    payload = {"unique_id": "Humidity sensor",
-               "name": "HumSens",
-               "state_topic": "plant/humidity",
-               "availability_topic": "plant/humidity/status",
-               "availability_mode": "latest",
-               "enabled_by_default": True,
-               "unit_of_measurement": "%",
-               "payload_available": "online",
-               "payload_not_available": "offline",
-               "device_class": "humidity",
-               "qos": 0,
-               "retain": True,
-               "dev": {
-                   "identifiers": "Automata",
-                   "name": "Automata MQTT"
-               }
-               }
-    subscriber.publish(topic="homeassistant/sensor/humidity/config", payload=json.dumps(payload))
-    subscriber.publish(topic="plant/humidity/status", payload='online')
-
-    payload = {"unique_id": "Current state",
-               "name": "AutomataStat",
-               "state_topic": "plant/state",
-               "availability_topic": "plant/state/status",
-               "availability_mode": "latest",
-               "enabled_by_default": True,
-               "payload_available": "online",
-               "payload_not_available": "offline",
-               "device_class": "enum",
-               "options": [v.name for v in States],
-               "native_value": "string",
-               "qos": 0,
-               "retain": True,
-               "dev": {
-                   "identifiers": "Automata",
-                   "name": "Automata MQTT"
-               }
-               }
-    subscriber.publish(topic="homeassistant/sensor/text/config", payload=json.dumps(payload))
-    subscriber.publish(topic="plant/state/status", payload='online')
+    with open("./config/config.json", "r") as json_file:
+        mqtt_config = json.load(json_file)
+    for sensor in mqtt_config["sensors"]:
+        topic = sensor["autoconf_topic"]
+        # Rimuovi il campo "autoconf_topic" prima di inviare la configurazione
+        del sensor["autoconf_topic"]
+        payload = json.dumps(sensor)
+        logging.info(f"sent autoconf to: {topic}: {payload}")
+        subscriber.publish(topic=topic, payload=payload)
+        subscriber.publish(topic=sensor["availability_topic"], payload='online')
 
 
 def ext_login_tls_config():
@@ -216,9 +107,9 @@ def state_transition(message: dict) -> None:
 
     if _Is_hour_passed >= _MAX_WAIT_TIME:
         _Current_state = Transitions.states_transition(
-                         _Current_state,
-                         _Temp_sum / _Msg_counter,
-                         _Rad_sum / _Msg_counter)
+            _Current_state,
+            _Temp_sum / _Msg_counter,
+            _Rad_sum / _Msg_counter)
         _Is_hour_passed = 0
         _Temp_sum = 0
         _Rad_sum = 0
@@ -235,9 +126,51 @@ def state_transition(message: dict) -> None:
             subscriber.publish(topic='plant/light', payload='off')
 
 
+def on_message(client, userdata, msg) -> None:
+    global _Current_state, _Time_elapsed, _Prev_rcv_time, _Is_hour_passed
+
+    message = json.loads(msg.payload.decode("utf-8"))
+    # print(f"\t{json.dumps(message)}")
+
+    time_calculation(message.get("Date_Time"))
+    current_time = set_current_time()
+
+    print(f"Message received on {current_time}:")
+    print(f"\tTime Elapsed since last message: {_Time_elapsed}")
+    print(f"\tHour counter: {_Is_hour_passed}")
+
+    # Funzione per i passaggi di stato nell'automa
+    state_transition(message)
+    print(f"\tCurrent state: {_Current_state.name}\n")
+
+
+def on_connect(client, userdata, flags, rc) -> None:
+    print("Connected!\n"
+          "---------------------------------------------------\n")
+
+
+def on_log(client, userdata, level, buf):
+    logging.debug(buf)
+
+
+def halt() -> None:
+    print("Deactivating all sensor on HA...")
+    subscriber.publish(topic="plant/temp/status", payload='offline')
+    subscriber.publish(topic="plant/light/status", payload='offline')
+    subscriber.publish(topic="plant/humidity/status", payload='offline')
+    subscriber.publish(topic="plant/state/status", payload='offline')
+    subscriber.loop_stop()
+    shutil.copyfile('./logs/Automata.log', './logs/Automata_old.log')
+    print("Done\nExiting...\n")
+    exit(0)
+
+
 if __name__ == '__main__':
     # Let's start with a clean screen!
     print("\033c")
+
+    if not os.path.exists('./logs'):
+        os.makedirs('./logs')
 
     logging.basicConfig(format='Date-Time : %(asctime)s %(levelname)s - %(message)s',
                         level=logging.DEBUG,
