@@ -1,6 +1,9 @@
 from math import exp, log
 from States import States
 
+# Questo script è stato generato a partire da un file contenente pseudocodice creato da Elia Brentarolli
+# e successivamente adattato per "vivere" come parte di questo progetto in python.
+
 NUM = 1
 Cfnm = 0.010417
 cfa = -0.00069
