@@ -164,7 +164,7 @@ def on_log(client, userdata, level, buf):
 
 
 def halt() -> None:
-    print("Deactivating all sensors on HA...")
+    print("Deactivating all sensor on HA...")
     with open("./config/config.json", "r") as json_file:
         mqtt_config = json.load(json_file)
     for sensor in mqtt_config["sensors"]:
