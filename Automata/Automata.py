@@ -22,6 +22,11 @@ _Rad_sum = 0.0
 _Temp_sum = 0.0
 _Init = True
 _MAX_WAIT_TIME = 60
+N = 0
+Bio = 0
+LAI_h = 0
+Wf = 0
+Wm = 0
 
 
 def set_current_time(init=False) -> datetime:
@@ -95,7 +100,7 @@ def ext_login_tls_config():
 
 
 def state_transition(message: dict) -> None:
-    global _Current_state, _Msg_counter, _Rad_sum, _Temp_sum, _Is_hour_passed
+    global _Current_state, _Msg_counter, _Rad_sum, _Temp_sum, _Is_hour_passed, N, Bio, LAI_h, Wf, Wm
 
     rad = float(message.get('SolarRad_W_m_2'))
     _Rad_sum += rad
@@ -106,7 +111,7 @@ def state_transition(message: dict) -> None:
     _Msg_counter += 1
 
     if _Is_hour_passed >= _MAX_WAIT_TIME:
-        _Current_state = Transitions.states_transition(
+        _Current_state, N, Bio, LAI_h, Wf, Wm = Transitions.states_transition(
             _Current_state,
             _Temp_sum / _Msg_counter,
             _Rad_sum / _Msg_counter)
@@ -118,6 +123,11 @@ def state_transition(message: dict) -> None:
         logging.info("Calling state transition function...")
 
     subscriber.publish(topic='plant/state', payload=_Current_state.name)
+    subscriber.publish(topic='plant/N_val', payload=N)
+    subscriber.publish(topic='plant/Bio_val', payload=Bio)
+    subscriber.publish(topic='plant/LAI_h_val', payload=LAI_h)
+    subscriber.publish(topic='plant/Wf_val', payload=Wf)
+    subscriber.publish(topic='plant/Wm_val', payload=Wm)
 
     match rad > 0:
         case True:
@@ -155,10 +165,10 @@ def on_log(client, userdata, level, buf):
 
 def halt() -> None:
     print("Deactivating all sensor on HA...")
-    subscriber.publish(topic="plant/temp/status", payload='offline')
-    subscriber.publish(topic="plant/light/status", payload='offline')
-    subscriber.publish(topic="plant/humidity/status", payload='offline')
-    subscriber.publish(topic="plant/state/status", payload='offline')
+    with open("./config/config.json", "r") as json_file:
+        mqtt_config = json.load(json_file)
+    for sensor in mqtt_config["sensors"]:
+        subscriber.publish(topic=sensor["availability_topic"], payload='offline')
     subscriber.loop_stop()
     shutil.copyfile('./logs/Automata.log', './logs/Automata_old.log')
     print("Done\nExiting...\n")

@@ -78,6 +78,86 @@
                    "identifiers": "Automata",
                    "name": "Automata MQTT"
                }
+        },
+              {
+            "name": "LAI_h Value",
+           "unique_id": "LAI_h value",
+           "state_topic": "plant/LAI_h_val",
+           "availability_topic": "plant/LAI_h_val/status",
+           "availability_mode": "latest",
+           "payload_available": "online",
+           "payload_not_available": "offline",
+           "enabled_by_default": true,
+           "retain": true,
+           "autoconf_topic": "homeassistant/sensor/LAI_h_val/config",
+           "dev": {
+               "identifiers": "Automata",
+               "name": "Automata MQTT"
+           }
+        },
+      {
+            "name": "N Value",
+           "unique_id": "N value",
+           "state_topic": "plant/N_val",
+           "availability_topic": "plant/N_val/status",
+           "availability_mode": "latest",
+           "payload_available": "online",
+           "payload_not_available": "offline",
+           "enabled_by_default": true,
+           "retain": true,
+           "autoconf_topic": "homeassistant/sensor/N_val/config",
+           "dev": {
+               "identifiers": "Automata",
+               "name": "Automata MQTT"
+           }
+        },
+      {
+            "name": "Bio Value",
+           "unique_id": "Bio value",
+           "state_topic": "plant/Bio_val",
+           "availability_topic": "plant/Bio_val/status",
+           "availability_mode": "latest",
+           "payload_available": "online",
+           "payload_not_available": "offline",
+           "enabled_by_default": true,
+           "retain": true,
+           "autoconf_topic": "homeassistant/sensor/Bio_val/config",
+           "dev": {
+               "identifiers": "Automata",
+               "name": "Automata MQTT"
+           }
+        },
+      {
+            "name": "Wf Value",
+           "unique_id": "Wf value",
+           "state_topic": "plant/Wf_val",
+           "availability_topic": "plant/Wf_val/status",
+           "availability_mode": "latest",
+           "payload_available": "online",
+           "payload_not_available": "offline",
+           "enabled_by_default": true,
+           "retain": true,
+           "autoconf_topic": "homeassistant/sensor/Wf_val/config",
+           "dev": {
+               "identifiers": "Automata",
+               "name": "Automata MQTT"
+           }
+        },
+      {
+            "name": "Wm Value",
+           "unique_id": "Wm value",
+           "state_topic": "plant/Wm_val",
+           "availability_topic": "plant/Wm_val/status",
+           "availability_mode": "latest",
+           "payload_available": "online",
+           "payload_not_available": "offline",
+           "enabled_by_default": true,
+           "retain": true,
+           "autoconf_topic": "homeassistant/sensor/Wm_val/config",
+           "dev": {
+               "identifiers": "Automata",
+               "name": "Automata MQTT"
+           }
         }
     ]
 }

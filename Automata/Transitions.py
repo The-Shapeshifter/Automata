@@ -104,7 +104,7 @@ def f():
     return max(0.0, min(1.0, g()))
 
 
-def states_transition(state, temp, rad) -> States:
+def states_transition(state, temp, rad):
     global N, Pg, Rm, Tm, Tdm, h, solar_h, counter, Bio, Nd, LAIMAX, LAI_h, KF, Wf, Wm
 
     match state:
@@ -119,7 +119,7 @@ def states_transition(state, temp, rad) -> States:
                 h = h + 1
                 solar_h = solar_h + 1
                 counter = counter + 1
-                return state
+                return state, N, Bio, LAI_h, Wf, Wm
             if h >= 23 and N < CfxNFF:
                 N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM)
                 counter = counter + 1
@@ -132,7 +132,7 @@ def states_transition(state, temp, rad) -> States:
                 h = 1
                 solar_h = 1
                 LAI_h = lai(temp)
-                return state
+                return state, N, Bio, LAI_h, Wf, Wm
             if h >= 23 and N >= CfxNFF:
                 N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM)
                 counter = counter + 1
@@ -145,7 +145,7 @@ def states_transition(state, temp, rad) -> States:
                 h = 1
                 solar_h = 1
                 LAI_h = lai(temp)
-                return States.S1
+                return States.S1, N, Bio, LAI_h, Wf, Wm
 
         case States.S1:
             if h <= 23:
@@ -157,7 +157,7 @@ def states_transition(state, temp, rad) -> States:
                 h = h + 1
                 solar_h = solar_h + 1
                 counter = counter + 1
-                return state
+                return state, N, Bio, LAI_h, Wf, Wm
             if h >= 23 and N < CfxNFF + KF:
                 N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM)
                 counter = counter + 1
@@ -173,7 +173,7 @@ def states_transition(state, temp, rad) -> States:
                 h = 1
                 solar_h = 1
                 LAI_h = lai
-                return state
+                return state, N, Bio, LAI_h, Wf, Wm
             if h >= 23 and N >= CfxNFF + KF:
                 N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM)
                 counter = counter + 1
@@ -189,7 +189,7 @@ def states_transition(state, temp, rad) -> States:
                 h = 1
                 solar_h = 1
                 LAI_h = lai(temp)
-                return States.S2
+                return States.S2, N, Bio, LAI_h, Wf, Wm
 
         case States.S2:
             if h < 23:
@@ -202,7 +202,7 @@ def states_transition(state, temp, rad) -> States:
                 h = h + 1
                 solar_h = solar_h + 1
                 counter = counter + 1
-                return state
+                return state, N, Bio, LAI_h, Wf, Wm
             if h >= 23:
                 N = N + Cfnm * min(min(0.25 + 0.025 * temp, 2.5 - 0.05 * temp), NUM)
                 counter = counter + 1
@@ -218,4 +218,4 @@ def states_transition(state, temp, rad) -> States:
                 h = 1
                 solar_h = 1
                 LAI_h = lai(temp)
-                return state
+                return state, N, Bio, LAI_h, Wf, Wm
