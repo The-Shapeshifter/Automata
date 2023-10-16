@@ -284,6 +284,6 @@ if __name__ == '__main__':
 #
 # Infine ai miei amici, quelli rimasti e quelli andati che mi hanno dato il materiale grezzo per la mia crescita.
 #
-# ancora oggi così: A metà strada su una strada infinita.
+# Ancora oggi così: A metà strada su una strada infinita.
 #
 # Grazie a tutti, di cuore, dal più profondo.
