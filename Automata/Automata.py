@@ -280,7 +280,7 @@ if __name__ == '__main__':
 # in cui camminerò storto
 #
 # Gianmaria, Andrea e Amos, aiutanti e compagni in questi anni di lacrime ed esami, senza i quali non sarei mai
-# riuscito a concludere questo percorso di studi e che mi hanno insegnato più di quanto loro sapranno mai
+# riuscito ad affrontare questo percorso di studi e che mi hanno insegnato più di quanto loro sapranno mai
 #
 # Infine ai miei amici, quelli rimasti e quelli andati che mi hanno dato il materiale grezzo per la mia crescita.
 #
